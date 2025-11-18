@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"service_users/model"
 	"strconv"
 	"sync"
 	"time"
@@ -12,19 +13,11 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 )
 
-type User struct {
-	ID        int       `json:"id"`
-	Email     string    `json:"email,omitempty"`
-	Name      string    `json:"name,omitempty"`
-	// Можно добавить любые поля, которые ты уже используешь в теле запроса
-	// Password и прочее сейчас НЕ трогаем, просто повторяем текущую логику
-	CreatedAt time.Time `json:"created_at,omitempty"`
-	UpdatedAt time.Time `json:"updated_at,omitempty"`
-}
+
 
 var (
 	mu        sync.RWMutex
-	fakeUsers = map[int]*User{}
+	fakeUsers = map[int]*model.User{}
 	currentID = 1
 )
 
@@ -76,7 +69,7 @@ func getUsersHandler(w http.ResponseWriter, r *http.Request) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	users := make([]*User, 0, len(fakeUsers))
+	users := make([]*model.User, 0, len(fakeUsers))
 	for _, u := range fakeUsers {
 		users = append(users, u)
 	}
@@ -97,7 +90,7 @@ func createUserHandler(w http.ResponseWriter, r *http.Request) {
 	id := currentID
 	currentID++
 
-	user := &User{
+	user := &model.User{
 		ID:        id,
 		CreatedAt: now,
 		UpdatedAt: now,
