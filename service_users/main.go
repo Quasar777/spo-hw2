@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
-	"service_users/model"
+	"service_users/internal/model"
 	"strconv"
 	"sync"
 	"time"

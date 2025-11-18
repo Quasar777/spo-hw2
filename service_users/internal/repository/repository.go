@@ -11,11 +11,22 @@ type UserRepository struct {
 	nextID  int
 }
 
-func NewCourierRepository() *UserRepository {
+func NewUserRepository() *UserRepository {
 	return &UserRepository{
 		storage: make(map[int]model.User),
 		nextID:  1,
 	}
+}
+
+func (r *UserRepository) GetByID(id int) (*model.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	u, ok := r.storage[id]
+	if !ok {
+		return nil, model.ErrUserNotFound
+	}
+	return &u, nil
 }
 
 func (r *UserRepository) GetAll() ([]model.User, error) {
@@ -27,17 +38,6 @@ func (r *UserRepository) GetAll() ([]model.User, error) {
 		res = append(res, u)
 	}
 	return res, nil
-}
-
-func (r *UserRepository) GetByID(id int) (model.User, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-
-	u, ok := r.storage[id]
-	if !ok {
-		return model.User{}, model.ErrUserNotFound
-	}
-	return u, nil
 }
 
 func (r *UserRepository) Create(u model.User) (model.User, error) {
