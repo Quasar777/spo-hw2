@@ -70,55 +70,8 @@ func initRouter(user *handler.UserController) *chi.Mux {
 	r.Post("/users", user.CreateUser)
 	r.Put("/users", user.UpdateUser)
 	r.Delete("/users/{id}",user.DeleteUser)
+	r.Get("/users/health", user.Health)
+	r.Get("/users/status", user.Status)	
 	
-	// r.Get("/users/health", healthHandler)
-	// r.Get("/users/status", statusHandler)	
-	
-	
-
 	return r
 }
-
-// func writeJSON(w http.ResponseWriter, status int, v any) {
-// 	w.Header().Set("Content-Type", "application/json")
-// 	w.WriteHeader(status)
-// 	_ = json.NewEncoder(w).Encode(v)
-// }
-
-// func healthHandler(w http.ResponseWriter, r *http.Request) {
-// 	writeJSON(w, http.StatusOK, map[string]any{
-// 		"status":   "OK",
-// 		"service":  "Users Service",
-// 		"timestamp": time.Now().Format(time.RFC3339),
-// 	})
-// }
-
-// func statusHandler(w http.ResponseWriter, r *http.Request) {
-// 	writeJSON(w, http.StatusOK, map[string]any{
-// 		"status": "Users service is running",
-// 	})
-// }
-
-// func deleteUserHandler(w http.ResponseWriter, r *http.Request) {
-// 	idStr := chi.URLParam(r, "userId")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
-// 		return
-// 	}
-
-// 	mu.Lock()
-// 	user, ok := fakeUsers[id]
-// 	if !ok {
-// 		mu.Unlock()
-// 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "User not found"})
-// 		return
-// 	}
-// 	delete(fakeUsers, id)
-// 	mu.Unlock()
-
-// 	writeJSON(w, http.StatusOK, map[string]any{
-// 		"message":     "User deleted",
-// 		"deletedUser": user,
-// 	})
-// }

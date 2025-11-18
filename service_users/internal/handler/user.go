@@ -7,6 +7,7 @@ import (
 	"service_users/internal/service"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -139,6 +140,26 @@ func (c *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]string {
 		"message": "User deleted successfully",
+	}
+
+	c.writeJSON(w, http.StatusOK, response)
+}
+
+// Health Check 
+func (c *UserController) Health(w http.ResponseWriter, r *http.Request) {
+	response := map[string]any {
+		"status":   "OK",
+		"service":  "Users Service",
+		"timestamp": time.Now().Format(time.RFC3339),
+	}
+
+	c.writeJSON(w, http.StatusOK, response)
+}
+
+// Service status
+func (c *UserController) Status(w http.ResponseWriter, r *http.Request) {
+	response := map[string]string {
+		"status": "Users service is running",
 	}
 
 	c.writeJSON(w, http.StatusOK, response)
