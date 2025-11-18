@@ -3,6 +3,7 @@ package repository
 import (
 	"service_users/internal/model"
 	"sync"
+	"time"
 )
 
 type UserRepository struct {
@@ -50,13 +51,14 @@ func (r *UserRepository) Create(user *model.CreateUserRequest) (int, error) {
 		}
 	}
 
+	r.nextID++
 	newUser := &model.User{
-		ID: r.nextID + 1,
+		ID: r.nextID,
 		Email: user.Email,
 		Name: user.Name,
+		CreatedAt: time.Now(),
 	}
-	r.nextID++
-
+	
 	r.storage[newUser.ID] = *newUser
 	return newUser.ID, nil
 }
