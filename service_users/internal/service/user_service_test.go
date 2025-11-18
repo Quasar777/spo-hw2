@@ -7,16 +7,12 @@ import (
 	"testing"
 )
 
-
 func TestUserService_GetExistingUser_Success(t *testing.T) {
-	// given
-	repo := repository.NewUserRepository()   // наш in-memory репозиторий
+	repo := repository.NewUserRepository()
 	svc := service.NewUserService(repo)
 
-	// when
 	user, err := svc.GetUser(1)
 
-	// then
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
 	}
@@ -63,4 +59,15 @@ func TestUserService_GetUserWithWrongId_ErrInvalidId(t *testing.T) {
 	if user != nil {
 		t.Fatalf("expected nil user, got: %+v", user)
 	}
+}
+
+func TestUserService_GetAllUsers_Success(t *testing.T) {
+	repo := repository.NewUserRepository()
+	svc := service.NewUserService(repo)
+
+	_, err := svc.GetAllUsers()
+	
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}	
 }
