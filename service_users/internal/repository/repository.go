@@ -14,10 +14,35 @@ type UserRepository struct {
 }
 
 func NewUserRepository() *UserRepository {
-	return &UserRepository{
+	r := &UserRepository{
 		storage: make(map[int]model.User),
-		nextID:  1,
+		nextID:  4,
 	}
+
+	r.storage[1] = model.User{
+		ID: 1,
+		Name:      "Alice",
+		Email:     "alice@example.com",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	r.storage[2] = model.User{
+		ID: 2,
+		Name:      "John",
+		Email:     "john@example.com",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+	r.storage[3] = model.User{
+		ID: 3,
+		Name:      "Andrew",
+		Email:     "andrew@example.com",
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	return r
 }
 
 func (r *UserRepository) GetByID(id int) (*model.User, error) {
@@ -90,15 +115,15 @@ func (r *UserRepository) Update(user *model.UpdateUserRequest) error {
 	return nil
 }
 
-func (r *UserRepository) Delete(id int) (model.User, error) {
+func (r *UserRepository) Delete(id int) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	u, ok := r.storage[id]
+	_, ok := r.storage[id]
 	if !ok {
-		return model.User{}, model.ErrUserNotFound
+		return model.ErrUserNotFound
 	}
 
 	delete(r.storage, id)
-	return u, nil
+	return nil
 }

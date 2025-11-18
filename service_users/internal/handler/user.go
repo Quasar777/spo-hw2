@@ -6,6 +6,7 @@ import (
 	"service_users/internal/model"
 	"service_users/internal/service"
 	"strconv"
+	"strings"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -113,6 +114,31 @@ func (c *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 	response := map[string]string {
 		"message": "User updated successfully",
+	}
+
+	c.writeJSON(w, http.StatusOK, response)
+}
+
+func (c *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
+	idParam := chi.URLParam(r, "id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		http.Error(w, `{"error": "Invalid id"}`, http.StatusBadRequest)
+		return
+	}
+
+	err = c.service.DeleteUser(id)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+			return
+		}
+		http.Error(w, `{"error": "Database error"}`, http.StatusInternalServerError)
+		return
+	}
+
+	response := map[string]string {
+		"message": "User deleted successfully",
 	}
 
 	c.writeJSON(w, http.StatusOK, response)

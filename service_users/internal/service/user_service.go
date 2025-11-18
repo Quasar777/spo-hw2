@@ -46,6 +46,9 @@ func (s *UserService) UpdateUser(req model.UpdateUserRequest) error {
 	return s.repository.Update(&req)
 }
 
+func (s *UserService) DeleteUser(id int) error {
+	return s.repository.Delete(id)
+}
 
 // Helpers
 

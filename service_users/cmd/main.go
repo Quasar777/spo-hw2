@@ -69,11 +69,12 @@ func initRouter(user *handler.UserController) *chi.Mux {
 	r.Get("/users/{id}", user.GetUser)
 	r.Post("/users", user.CreateUser)
 	r.Put("/users", user.UpdateUser)
-
+	r.Delete("/users/{id}",user.DeleteUser)
+	
 	// r.Get("/users/health", healthHandler)
 	// r.Get("/users/status", statusHandler)	
 	
-	// r.Delete("/users/{userId}", deleteUserHandler)
+	
 
 	return r
 }
