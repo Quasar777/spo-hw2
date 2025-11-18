@@ -3,14 +3,13 @@ package service
 import (
 	"regexp"
 	"service_users/internal/model"
-	"service_users/internal/repository"
 )
 
 type UserService struct {
-	repository *repository.UserRepository
+	repository UserRepository
 }
 
-func NewUserService(r *repository.UserRepository) *UserService {
+func NewUserService(r UserRepository) *UserService {
 	return &UserService{repository: r}
 }
 
