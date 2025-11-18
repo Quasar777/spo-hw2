@@ -68,10 +68,11 @@ func initRouter(user *handler.UserController) *chi.Mux {
 	r.Get("/users", user.GetMany)
 	r.Get("/users/{id}", user.GetUser)
 	r.Post("/users", user.CreateUser)
+	r.Put("/users", user.UpdateUser)
 
 	// r.Get("/users/health", healthHandler)
 	// r.Get("/users/status", statusHandler)	
-	// r.Put("/users/{userId}", updateUserHandler)
+	
 	// r.Delete("/users/{userId}", deleteUserHandler)
 
 	return r
@@ -95,64 +96,6 @@ func initRouter(user *handler.UserController) *chi.Mux {
 // 	writeJSON(w, http.StatusOK, map[string]any{
 // 		"status": "Users service is running",
 // 	})
-// }
-
-
-// func getUserHandler(w http.ResponseWriter, r *http.Request) {
-// 	idStr := chi.URLParam(r, "userId")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
-// 		return
-// 	}
-
-// 	mu.RLock()
-// 	user, ok := fakeUsers[id]
-// 	mu.RUnlock()
-
-// 	if !ok {
-// 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "User not found"})
-// 		return
-// 	}
-
-// 	writeJSON(w, http.StatusOK, user)
-// }
-
-// func updateUserHandler(w http.ResponseWriter, r *http.Request) {
-// 	idStr := chi.URLParam(r, "userId")
-// 	id, err := strconv.Atoi(idStr)
-// 	if err != nil {
-// 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid user id"})
-// 		return
-// 	}
-
-// 	var updates map[string]any
-// 	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
-// 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid JSON"})
-// 		return
-// 	}
-
-// 	mu.Lock()
-// 	user, ok := fakeUsers[id]
-// 	if !ok {
-// 		mu.Unlock()
-// 		writeJSON(w, http.StatusNotFound, map[string]string{"error": "User not found"})
-// 		return
-// 	}
-
-// 	// Обновляем только те поля, которые точно знаем
-// 	if email, ok := updates["email"].(string); ok {
-// 		user.Email = email
-// 	}
-// 	if name, ok := updates["name"].(string); ok {
-// 		user.Name = name
-// 	}
-// 	user.UpdatedAt = time.Now()
-
-// 	fakeUsers[id] = user
-// 	mu.Unlock()
-
-// 	writeJSON(w, http.StatusOK, user)
 // }
 
 // func deleteUserHandler(w http.ResponseWriter, r *http.Request) {

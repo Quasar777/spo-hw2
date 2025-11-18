@@ -64,6 +64,8 @@ func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 		switch err {
 		case model.ErrMissingRequiredFields:
 			http.Error(w, `{"error": "Missing required fields"}`, http.StatusBadRequest)
+		case model.ErrInvalidEmail:
+			http.Error(w, `{"error": "Invalid email"}`, http.StatusBadRequest)
 		case model.ErrUniqueEmailConflict:
 			http.Error(w, `{"error": "User with this email is already exists"}`, http.StatusConflict)
 		default:
@@ -80,6 +82,41 @@ func (c *UserController) CreateUser(w http.ResponseWriter, r *http.Request) {
 	c.writeJSON(w, http.StatusCreated, response)
 }
 
+func (c *UserController) UpdateUser(w http.ResponseWriter, r *http.Request) {
+	var reqUser model.UpdateUserRequest
+	if err := json.NewDecoder(r.Body).Decode(&reqUser); err != nil {
+		http.Error(w, `{"error": "Invalid JSON}`, http.StatusBadRequest)
+		return
+	}
+	if reqUser.ID == 0 {
+		http.Error(w, `{"error": "Id is required"}`, http.StatusBadRequest)
+		return
+	}
+
+	err := c.service.UpdateUser(reqUser)
+
+	if err != nil {
+		switch err {
+		case model.ErrUserNotFound:
+			http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
+		case model.ErrMissingRequiredFields:
+			http.Error(w, `{"error": "Missing required fields"}`, http.StatusBadRequest)
+		case model.ErrInvalidEmail:
+			http.Error(w, `{"error": "Invalid email"}`, http.StatusBadRequest)
+		case model.ErrUniqueEmailConflict:
+			http.Error(w, `{"error": "User with this email is already exists"}`, http.StatusConflict)
+		default:
+			http.Error(w, `{"error": "Database error"}`, http.StatusInternalServerError)
+		}
+		return
+	}
+
+	response := map[string]string {
+		"message": "User updated successfully",
+	}
+
+	c.writeJSON(w, http.StatusOK, response)
+}
 
 // Helpers
 func (c *UserController) writeJSON(w http.ResponseWriter, status int, data interface{}) {

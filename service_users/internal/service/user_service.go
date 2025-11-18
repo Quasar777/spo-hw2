@@ -33,6 +33,19 @@ func (s *UserService) CreateUser(req model.CreateUserRequest) (int, error) {
 	return s.repository.Create(&req)
 }
 
+func (s *UserService) UpdateUser(req model.UpdateUserRequest) error {
+	if req.Name == "" {
+		return model.ErrMissingRequiredFields
+	}
+
+	_, err := s.repository.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+
+	return s.repository.Update(&req)
+}
+
 
 // Helpers
 
