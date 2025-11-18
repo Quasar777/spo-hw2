@@ -40,15 +40,25 @@ func (r *UserRepository) GetAll() ([]model.User, error) {
 	return res, nil
 }
 
-func (r *UserRepository) Create(u model.User) (model.User, error) {
+func (r *UserRepository) Create(user *model.CreateUserRequest) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	u.ID = r.nextID
+	for _, u := range r.storage {
+		if user.Email == u.Email {
+			return 0, model.ErrUniqueEmailConflict
+		}
+	}
+
+	newUser := &model.User{
+		ID: r.nextID + 1,
+		Email: user.Email,
+		Name: user.Name,
+	}
 	r.nextID++
 
-	r.storage[u.ID] = u
-	return u, nil
+	r.storage[newUser.ID] = *newUser
+	return newUser.ID, nil
 }
 
 func (r *UserRepository) Update(u model.User) (model.User, error) {
