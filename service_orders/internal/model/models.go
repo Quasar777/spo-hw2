@@ -17,8 +17,8 @@ type CreateOrderRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Price       int    `json:"price"`
-	UserId      int       `json:"userId"`
-	Status      string    `json:"status"`
+	UserId      int    `json:"userId"`
+	Status      string `json:"status"`
 }
 
 type UpdateOrderRequest struct {
@@ -26,5 +26,5 @@ type UpdateOrderRequest struct {
 	Name        string `json:"name"`
 	Description string `json:"description"`
 	Price       int    `json:"price"`
-	Status      string    `json:"status"`
+	Status      string `json:"status"`
 }

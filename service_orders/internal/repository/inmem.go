@@ -75,7 +75,7 @@ func (r *InMemoryOrderRepository) GetAll() ([]model.Order, error) {
 	return orders, nil
 }
 
-func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (*model.Order, error) {
+func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -96,17 +96,17 @@ func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (*model.
 	r.storage[id] = order
 
 	o := order
-	return &o, nil
+	return o.ID, nil
 }
 
 
-func (r *InMemoryOrderRepository) Update(req *model.UpdateOrderRequest) (*model.Order, error) {
+func (r *InMemoryOrderRepository) Update(req *model.UpdateOrderRequest) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	order, ok := r.storage[req.ID]
 	if !ok {
-		return nil, model.ErrOrderNotFound
+		return model.ErrOrderNotFound
 	}
 
 	order.Name = req.Name
@@ -117,21 +117,19 @@ func (r *InMemoryOrderRepository) Update(req *model.UpdateOrderRequest) (*model.
 
 	r.storage[req.ID] = order
 
-	o := order
-	return &o, nil
+	return nil
 }
 
-func (r *InMemoryOrderRepository) Delete(id int) (*model.Order, error) {
+func (r *InMemoryOrderRepository) Delete(id int) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	order, ok := r.storage[id]
+	_, ok := r.storage[id]
 	if !ok {
-		return nil, model.ErrOrderNotFound
+		return model.ErrOrderNotFound
 	}
 
 	delete(r.storage, id)
 
-	o := order
-	return &o, nil
+	return nil
 }
