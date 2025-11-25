@@ -10,7 +10,7 @@ RUN go mod download
 # Потом остальной код
 COPY . .
 
-RUN go build -o users-service ./main.go
+RUN go build -o users-service ./cmd/main.go
 
 # Этап рантайма
 FROM alpine:latest

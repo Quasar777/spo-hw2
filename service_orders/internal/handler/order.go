@@ -89,7 +89,7 @@ func (c *OrderController) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	order, err := c.service.CreateOrder(req)
+	id, err := c.service.CreateOrder(req)
 	if err != nil {
 		switch err {
 		case model.ErrMissingRequiredFields:
@@ -102,7 +102,12 @@ func (c *OrderController) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusCreated, order)
+	response := map[string]interface{}{
+		"id": id,
+		"message": "Order created succesfully",
+	}
+
+	writeJSON(w, http.StatusCreated, response)
 }
 
 // PUT /orders/{id}
@@ -149,7 +154,7 @@ func (c *OrderController) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
 	if err != nil {
-		http.Error(w, `{"error": "invalid order id"}`, http.StatusBadRequest)
+		http.Error(w, `{"error": "invalid id"}`, http.StatusBadRequest)
 		return
 	}
 

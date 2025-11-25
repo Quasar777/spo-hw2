@@ -7,7 +7,7 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o orders-service ./main.go
+RUN go build -o orders-service ./cmd/main.go
 
 FROM alpine:latest
 
