@@ -75,7 +75,7 @@ func (r *InMemoryOrderRepository) GetAll() ([]model.Order, error) {
 	return orders, nil
 }
 
-func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (int, error) {
+func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (*model.Order, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -86,6 +86,8 @@ func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (int, er
 		ID:          id,
 		Name:        req.Name,
 		Description: req.Description,
+		UserId:      req.UserId,
+		Status:      req.Status,
 		Price:       req.Price,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
@@ -93,36 +95,43 @@ func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (int, er
 
 	r.storage[id] = order
 
-	return id, nil
+	o := order
+	return &o, nil
 }
 
-func (r *InMemoryOrderRepository) Update(req *model.UpdateOrderRequest) error {
+
+func (r *InMemoryOrderRepository) Update(req *model.UpdateOrderRequest) (*model.Order, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	order, ok := r.storage[req.ID]
 	if !ok {
-		return model.ErrOrderNotFound
+		return nil, model.ErrOrderNotFound
 	}
 
 	order.Name = req.Name
 	order.Description = req.Description
 	order.Price = req.Price
+	order.Status = req.Status
 	order.UpdatedAt = time.Now()
 
 	r.storage[req.ID] = order
 
-	return nil
+	o := order
+	return &o, nil
 }
 
-func (r *InMemoryOrderRepository) Delete(id int) error {
+func (r *InMemoryOrderRepository) Delete(id int) (*model.Order, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, ok := r.storage[id]; !ok {
-		return model.ErrOrderNotFound
+	order, ok := r.storage[id]
+	if !ok {
+		return nil, model.ErrOrderNotFound
 	}
 
 	delete(r.storage, id)
-	return nil
+
+	o := order
+	return &o, nil
 }
