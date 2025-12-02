@@ -118,6 +118,10 @@ func (c *OrderController) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, `{"error": "invalid order id"}`, http.StatusBadRequest)
 		return
 	}
+	if id == 0 {
+		http.Error(w, `{"error": "invalid order id"}`, http.StatusBadRequest)
+		return
+	}
 
 	var req model.UpdateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

@@ -43,10 +43,11 @@ func main() {
 	}
 
 	usersHandler := handler.NewUserHandler(httpClient, usersServiceURL, gw.usersCB)
+	ordersHandler := handler.NewOrdersHandler(httpClient, ordersServiceURL, gw.ordersCB)
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%v", port),
-		Handler: initRouter(gw, usersHandler),
+		Handler: initRouter(gw, usersHandler, ordersHandler),
 	}
 
 	// Graceful shutdown
@@ -73,7 +74,7 @@ func main() {
 	}
 }
 
-func initRouter(gw *Gateway, users *handler.UsersHandler) *chi.Mux {
+func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.OrdersHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -96,13 +97,13 @@ func initRouter(gw *Gateway, users *handler.UsersHandler) *chi.Mux {
 	r.Delete("/users/{userId}", users.DeleteUser)
 
 	// ORDERS
-	r.Get("/orders/{orderId}", gw.getOrder)
-	r.Post("/orders", gw.createOrder)
-	r.Get("/orders", gw.listOrders)
-	r.Put("/orders/{orderId}", gw.updateOrder)
-	r.Delete("/orders/{orderId}", gw.deleteOrder)
-	r.Get("/orders/status", gw.ordersStatus)
-	r.Get("/orders/health", gw.ordersHealth)
+	r.Get("/orders/{orderId}", orders.GetOrder)
+	r.Post("/orders", orders.CreateOrder)
+	r.Get("/orders", orders.ListOrders)
+	r.Put("/orders/{orderId}", orders.UpdateOrder)
+	r.Delete("/orders/{orderId}", orders.DeleteOrder)
+	r.Get("/orders/status", orders.OrdersStatus)
+	r.Get("/orders/health", orders.OrdersHealth)
 
 	// Агрегация (оба сервиса)
 	r.Get("/users/{userId}/details", gw.userDetails)

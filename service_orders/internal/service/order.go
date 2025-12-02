@@ -48,12 +48,15 @@ func (s *OrderService) CreateOrder(req model.CreateOrderRequest) (int, error) {
 }
 
 func (s *OrderService) UpdateOrder(req model.UpdateOrderRequest) error {
-	if req.ID == 0 || req.Name == "" || req.Status == "" {
+	if req.Name == "" && req.Status == "" && req.Description == "" {
 		return model.ErrMissingRequiredFields
 	}
 	if req.Price < 0 {
 		return model.ErrInvalidPrice
 	}
+
+	// TODO: filling fields that are not filled with existing values
+	// existingOrder, err := s.repo.GetByID(req.ID)
 
 	return s.repo.Update(&req)
 }
