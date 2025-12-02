@@ -2,12 +2,9 @@ package main
 
 import (
 	"api_gateway/internal/handler"
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
-	"io"
 	"log"
 	"net/http"
 	"os/signal"
@@ -44,10 +41,11 @@ func main() {
 
 	usersHandler := handler.NewUserHandler(httpClient, usersServiceURL, gw.usersCB)
 	ordersHandler := handler.NewOrdersHandler(httpClient, ordersServiceURL, gw.ordersCB)
+	aggHandler   := handler.NewAggregationHandler(httpClient, gw.usersCB, gw.ordersCB, usersServiceURL, ordersServiceURL)
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%v", port),
-		Handler: initRouter(gw, usersHandler, ordersHandler),
+		Handler: initRouter(gw, usersHandler, ordersHandler, aggHandler),
 	}
 
 	// Graceful shutdown
@@ -74,7 +72,7 @@ func main() {
 	}
 }
 
-func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.OrdersHandler) *chi.Mux {
+func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.OrdersHandler, agg *handler.AggregationHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -106,7 +104,7 @@ func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.Orders
 	r.Get("/orders/health", orders.OrdersHealth)
 
 	// Агрегация (оба сервиса)
-	r.Get("/users/{userId}/details", gw.userDetails)
+	r.Get("/users/{userId}/details", agg.UserDetails)
 
 	// Health Check
 	r.Get("/health", gw.health)
@@ -145,130 +143,6 @@ func writeJSON(w http.ResponseWriter, status int, v any) {
 	_ = json.NewEncoder(w).Encode(v)
 }
 
-// Обёртка, которая делает HTTP-запрос через circuit breaker
-func (g *Gateway) doRequest(cb *gobreaker.CircuitBreaker, method, url string, body []byte, r *http.Request) (*http.Response, error) {
-	result, err := cb.Execute(func() (interface{}, error) {
-		var bodyReader io.Reader
-		if body != nil {
-			bodyReader = bytes.NewReader(body)
-		}
-
-		req, err := http.NewRequest(method, url, bodyReader)
-		if err != nil {
-			return nil, err
-		}
-
-		// Прокидываем заголовки, которые нам важны
-		req.Header.Set("Content-Type", "application/json")
-		if rid := r.Header.Get("X-Request-ID"); rid != "" {
-			req.Header.Set("X-Request-ID", rid)
-		}
-
-		return httpClient.Do(req)
-	})
-
-	if err != nil {
-		return nil, err
-	}
-
-	return result.(*http.Response), nil
-}
-
-// --- Aggregation: /users/{userId}/details ---
-
-func (g *Gateway) userDetails(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userId")
-
-	// 1) достаём юзера
-	userURL := usersServiceURL + "/users/" + userID
-
-	// 2) достаём все заказы
-	ordersURL := ordersServiceURL + "/orders"
-
-	type result struct {
-		resp *http.Response
-		err  error
-	}
-
-	userCh := make(chan result, 1)
-	ordersCh := make(chan result, 1)
-
-	go func() {
-		resp, err := g.doRequest(g.usersCB, http.MethodGet, userURL, nil, r)
-		userCh <- result{resp, err}
-	}()
-
-	go func() {
-		resp, err := g.doRequest(g.ordersCB, http.MethodGet, ordersURL, nil, r)
-		ordersCh <- result{resp, err}
-	}()
-
-	userRes := <-userCh
-	ordersRes := <-ordersCh
-
-	if userRes.err != nil {
-		g.handleCBError(w, userRes.err, "Users")
-		return
-	}
-	if ordersRes.err != nil {
-		g.handleCBError(w, ordersRes.err, "Orders")
-		return
-	}
-
-	defer userRes.resp.Body.Close()
-	defer ordersRes.resp.Body.Close()
-
-	if userRes.resp.StatusCode == http.StatusNotFound {
-		// Просто прокинем как 404
-		body, _ := io.ReadAll(userRes.resp.Body)
-		w.Header().Set("Content-Type", "application/json")
-		w.WriteHeader(http.StatusNotFound)
-		w.Write(body)
-		return
-	}
-
-	// Распарсим user
-	var user any
-	if err := json.NewDecoder(userRes.resp.Body).Decode(&user); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to parse user"})
-		return
-	}
-
-	// Распарсим orders (ожидаем массив)
-	var orders []map[string]any
-	if err := json.NewDecoder(ordersRes.resp.Body).Decode(&orders); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to parse orders"})
-		return
-	}
-
-	// Фильтруем заказы по userId (как в Node-коде)
-	filtered := make([]map[string]any, 0)
-	for _, o := range orders {
-		if val, ok := o["userId"]; ok {
-			switch v := val.(type) {
-			case float64:
-				// userId в заказе как число (float64 из JSON)
-				if fmt.Sprintf("%d", int(v)) == userID {
-					filtered = append(filtered, o)
-				}
-			case int:
-				if fmt.Sprintf("%d", v) == userID {
-					filtered = append(filtered, o)
-				}
-			case string:
-				if v == userID {
-					filtered = append(filtered, o)
-				}
-			}
-		}
-	}
-
-	writeJSON(w, http.StatusOK, map[string]any{
-		"user":   user,
-		"orders": filtered,
-	})
-}
-
 // --- Health шлюза ---
 
 func (g *Gateway) health(w http.ResponseWriter, r *http.Request) {
@@ -284,22 +158,5 @@ func (g *Gateway) health(w http.ResponseWriter, r *http.Request) {
 				"stats": g.ordersCB.Counts(),
 			},
 		},
-	})
-}
-
-// --- Ошибки circuit breaker ---
-
-func (g *Gateway) handleCBError(w http.ResponseWriter, err error, service string) {
-	log.Printf("%s service error: %v", service, err)
-
-	if errors.Is(err, gobreaker.ErrOpenState) || errors.Is(err, gobreaker.ErrTooManyRequests) {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"error": service + " service temporarily unavailable",
-		})
-		return
-	}
-
-	writeJSON(w, http.StatusInternalServerError, map[string]string{
-		"error": "Internal server error",
 	})
 }
