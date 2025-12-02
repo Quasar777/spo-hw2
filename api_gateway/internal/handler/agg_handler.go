@@ -1,15 +1,17 @@
 package handler
 
 import (
+	"api_gateway/internal/model"
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
+	"strconv"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/sony/gobreaker"
 )
+
 
 type AggregationHandler struct {
 	client        *http.Client
@@ -97,15 +99,24 @@ func (h *AggregationHandler) doOrdersRequest(method, path string, body []byte, r
 }
 
 func (h *AggregationHandler) UserDetails(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userId")
+	userIDStr := chi.URLParam(r, "userId")
+	if userIDStr == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "userId is required"})
+		return
+	}
 
-	userPath := "/users/" + userID
+	userID, err := strconv.Atoi(userIDStr)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid userId"})
+		return
+	}
+
+	userPath := "/users/" + userIDStr
 	ordersPath := "/orders"
 
 	userCh := make(chan result, 1)
 	ordersCh := make(chan result, 1)
 
-	// Параллельно дергаем users и orders
 	go func() {
 		resp, err := h.doUsersRequest(http.MethodGet, userPath, nil, r)
 		userCh <- result{resp: resp, err: err}
@@ -163,43 +174,29 @@ func (h *AggregationHandler) UserDetails(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	var user any
+	var user model.User
 	if err := json.NewDecoder(userRes.resp.Body).Decode(&user); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to parse user"})
 		return
 	}
 
-	var orders []map[string]any
+	var orders []model.Order
 	if err := json.NewDecoder(ordersRes.resp.Body).Decode(&orders); err != nil {
 		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to parse orders"})
 		return
 	}
 
-	filtered := make([]map[string]any, 0)
+	filtered := make([]model.Order, 0)
 	for _, o := range orders {
-		val, ok := o["userId"]
-		if !ok {
-			continue
-		}
-
-		switch v := val.(type) {
-		case float64:
-			if fmt.Sprintf("%d", int(v)) == userID {
-				filtered = append(filtered, o)
-			}
-		case int:
-			if fmt.Sprintf("%d", v) == userID {
-				filtered = append(filtered, o)
-			}
-		case string:
-			if v == userID {
-				filtered = append(filtered, o)
-			}
+		if o.UserId == userID {
+			filtered = append(filtered, o)
 		}
 	}
 
-	writeJSON(w, http.StatusOK, map[string]any{
-		"user":   user,
-		"orders": filtered,
-	})
+	response := model.UserDetailsResponse{
+		User:   user,
+		Orders: filtered,
+	}
+
+	writeJSON(w, http.StatusOK, response)
 }

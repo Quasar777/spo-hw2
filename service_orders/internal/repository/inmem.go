@@ -23,6 +23,8 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 		Name:        "Pizza Margherita",
 		Description: "Classic pizza with tomatoes and cheese",
 		Price:       1200,
+		Status:      "canceled",
+		UserId:      1,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -32,6 +34,8 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 		Name:        "Burger XXL",
 		Description: "Double beef burger with fries",
 		Price:       1500,
+		Status:      "delivered",
+		UserId:      1,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
@@ -41,13 +45,14 @@ func NewInMemoryOrderRepository() *InMemoryOrderRepository {
 		Name:        "Latte",
 		Description: "Coffee latte 400ml",
 		Price:       450,
+		Status:      "delivered",
+		UserId:      2,
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
 
 	return r
 }
-
 
 func (r *InMemoryOrderRepository) GetByID(id int) (*model.Order, error) {
 	r.mu.RLock()
@@ -98,7 +103,6 @@ func (r *InMemoryOrderRepository) Create(req *model.CreateOrderRequest) (int, er
 	o := order
 	return o.ID, nil
 }
-
 
 func (r *InMemoryOrderRepository) Update(req *model.UpdateOrderRequest) error {
 	r.mu.Lock()
