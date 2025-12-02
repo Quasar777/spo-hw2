@@ -2,13 +2,16 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"os/signal"
+	"syscall"
 	"time"
-	"fmt"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
@@ -19,6 +22,8 @@ import (
 const (
 	usersServiceURL  = "http://service_users:8000"
 	ordersServiceURL = "http://service_orders:8000"
+	port     = "8000"
+	shutdownTimeout = 5 * time.Second
 )
 
 var httpClient = &http.Client{
@@ -36,6 +41,36 @@ func main() {
 		ordersCB: newCircuitBreaker("orders-service"),
 	}
 
+	srv := &http.Server{
+		Addr: fmt.Sprintf(":%v", port),
+		Handler: initRouter(gw),
+	}
+
+	// Graceful shutdown
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+	
+	go func() {
+		log.Println("starting api-gateway on port", port)
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("server starting failed: %v", err)
+		}
+	}() 
+	
+	<-ctx.Done()
+
+	shutDownCtx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	defer cancel()
+	
+	log.Printf("shutting down server gracefully")
+	if err := srv.Shutdown(shutDownCtx); err != nil {
+		log.Println("error when shutting down:", err)
+	} else {
+		log.Println("server stopped")
+	}
+}
+
+func initRouter(gw *Gateway) *chi.Mux {
 	r := chi.NewRouter()
 
 	// Общие мидлвары
@@ -80,14 +115,8 @@ func main() {
 		})
 	})
 
-	port := ":8000"
-	log.Printf("API Gateway running on port %s\n", port)
-	if err := http.ListenAndServe("0.0.0.0"+port, r); err != nil {
-		log.Fatal(err)
-	}
+	return r
 }
-
-// --- Circuit breaker ---
 
 func newCircuitBreaker(name string) *gobreaker.CircuitBreaker {
 	settings := gobreaker.Settings{
