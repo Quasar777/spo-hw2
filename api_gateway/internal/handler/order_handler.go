@@ -93,15 +93,13 @@ func (h *OrdersHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *OrdersHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
-	orderID := chi.URLParam(r, "orderId")
-
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
 		return
 	}
 
-	resp, err := h.doRequest(http.MethodPut, "/orders/"+orderID, body, r)
+	resp, err := h.doRequest(http.MethodPut, "/orders", body, r)
 	if err != nil {
 		handleCBError(w, err, "Orders")
 		return

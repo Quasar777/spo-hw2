@@ -96,7 +96,7 @@ func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.Orders
 	r.Get("/orders/{orderId}", orders.GetOrder)
 	r.Post("/orders", orders.CreateOrder)
 	r.Get("/orders", orders.ListOrders)
-	r.Put("/orders/{orderId}", orders.UpdateOrder)
+	r.Put("/orders", orders.UpdateOrder)
 	r.Delete("/orders/{orderId}", orders.DeleteOrder)
 	r.Get("/orders/status", orders.OrdersStatus)
 	r.Get("/orders/health", orders.OrdersHealth)

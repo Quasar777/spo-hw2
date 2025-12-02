@@ -55,8 +55,14 @@ func (s *OrderService) UpdateOrder(req model.UpdateOrderRequest) error {
 		return model.ErrInvalidPrice
 	}
 
-	// TODO: filling fields that are not filled with existing values
-	// existingOrder, err := s.repo.GetByID(req.ID)
+	existingOrder, err := s.repo.GetByID(req.ID)
+	if err != nil {
+		return err
+	}
+
+	if req.Name == "" { req.Name = existingOrder.Name }
+	if req.Status == "" { req.Status = existingOrder.Status }
+	if req.Description == "" { req.Description = existingOrder.Description }
 
 	return s.repo.Update(&req)
 }

@@ -112,26 +112,17 @@ func (c *OrderController) CreateOrder(w http.ResponseWriter, r *http.Request) {
 
 // PUT /orders/{id}
 func (c *OrderController) UpdateOrder(w http.ResponseWriter, r *http.Request) {
-	idStr := chi.URLParam(r, "id")
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		http.Error(w, `{"error": "invalid order id"}`, http.StatusBadRequest)
-		return
-	}
-	if id == 0 {
-		http.Error(w, `{"error": "invalid order id"}`, http.StatusBadRequest)
-		return
-	}
-
 	var req model.UpdateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, `{"error": "invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
+	if req.ID == 0 {
+		http.Error(w, `{"error": "invalid ID"}`, http.StatusBadRequest)
+		return
+	}
 
-	req.ID = id // path ID — источник истины
-
-	err = c.service.UpdateOrder(req)
+	err := c.service.UpdateOrder(req)
 	if err != nil {
 		switch err {
 		case model.ErrMissingRequiredFields:

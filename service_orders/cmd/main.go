@@ -72,7 +72,7 @@ func initRouter(order *handler.OrderController) *chi.Mux {
 	r.Get("/orders/{id}", order.GetOrder)
 	r.Get("/orders", order.ListOrders)
 	r.Post("/orders", order.CreateOrder)
-	r.Put("/orders/{id}", order.UpdateOrder)
+	r.Put("/orders", order.UpdateOrder)
 	r.Delete("/orders/{id}", order.DeleteOrder)
 
 	return r
