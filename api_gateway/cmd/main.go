@@ -27,25 +27,18 @@ var httpClient = &http.Client{
 	Timeout: 3 * time.Second,
 }
 
-type Gateway struct {
-	usersCB  *gobreaker.CircuitBreaker
-	ordersCB *gobreaker.CircuitBreaker
-}
-
 func main() {
-	gw := &Gateway{
-		usersCB:  newCircuitBreaker("users-service"),
-		ordersCB: newCircuitBreaker("orders-service"),
-	}
+	usersCB := newCircuitBreaker("users-service")
+	ordersCB := newCircuitBreaker("orders-service")
 
-	usersHandler := handler.NewUserHandler(httpClient, usersServiceURL, gw.usersCB)
-	ordersHandler := handler.NewOrdersHandler(httpClient, ordersServiceURL, gw.ordersCB)
-	aggHandler   := handler.NewAggregationHandler(httpClient, gw.usersCB, gw.ordersCB, usersServiceURL, ordersServiceURL)
-	healthHandler := handler.NewHealthHandler(gw.usersCB, gw.ordersCB)
+	usersHandler := handler.NewUserHandler(httpClient, usersServiceURL, usersCB)
+	ordersHandler := handler.NewOrdersHandler(httpClient, ordersServiceURL, ordersCB)
+	aggHandler   := handler.NewAggregationHandler(httpClient, usersCB, ordersCB, usersServiceURL, ordersServiceURL)
+	healthHandler := handler.NewHealthHandler(usersCB, ordersCB)
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%v", port),
-		Handler: initRouter(gw, usersHandler, ordersHandler, aggHandler, healthHandler),
+		Handler: initRouter(usersHandler, ordersHandler, aggHandler, healthHandler),
 	}
 
 	// Graceful shutdown
@@ -72,7 +65,7 @@ func main() {
 	}
 }
 
-func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.OrdersHandler, agg *handler.AggregationHandler, health *handler.HealthHandler) *chi.Mux {
+func initRouter(users *handler.UsersHandler, orders *handler.OrdersHandler, agg *handler.AggregationHandler, health *handler.HealthHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)

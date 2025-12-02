@@ -85,7 +85,6 @@ func (h *UsersHandler) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	forwardResponse(w, resp)
 }
 
-// общий метод для запросов в users-service через circuit breaker
 func (h *UsersHandler) doRequest(method, path string, body []byte, r *http.Request) (*http.Response, error) {
 	url := h.baseURL + path
 
