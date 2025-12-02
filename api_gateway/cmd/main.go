@@ -1,6 +1,7 @@
 package main
 
 import (
+	"api_gateway/internal/handler"
 	"bytes"
 	"context"
 	"encoding/json"
@@ -41,9 +42,11 @@ func main() {
 		ordersCB: newCircuitBreaker("orders-service"),
 	}
 
+	usersHandler := handler.NewUserHandler(httpClient, usersServiceURL, gw.usersCB)
+
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%v", port),
-		Handler: initRouter(gw),
+		Handler: initRouter(gw, usersHandler),
 	}
 
 	// Graceful shutdown
@@ -70,15 +73,12 @@ func main() {
 	}
 }
 
-func initRouter(gw *Gateway) *chi.Mux {
+func initRouter(gw *Gateway, users *handler.UsersHandler) *chi.Mux {
 	r := chi.NewRouter()
 
-	// Общие мидлвары
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-
-	// CORS примерно как в express().use(cors())
 	r.Use(cors.Handler(cors.Options{
 		AllowedOrigins:   []string{"*"},
 		AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -89,11 +89,11 @@ func initRouter(gw *Gateway) *chi.Mux {
 	}))
 
 	// USERS
-	r.Get("/users/{userId}", gw.getUser)
-	r.Post("/users", gw.createUser)
-	r.Get("/users", gw.listUsers)
-	r.Put("/users/{userId}", gw.updateUser)
-	r.Delete("/users/{userId}", gw.deleteUser)
+	r.Get("/users/{userId}", users.GetUser)
+	r.Post("/users", users.CreateUser)
+	r.Get("/users", users.ListUsers)
+	r.Put("/users", users.UpdateUser)
+	r.Delete("/users/{userId}", users.DeleteUser)
 
 	// ORDERS
 	r.Get("/orders/{orderId}", gw.getOrder)
@@ -104,10 +104,10 @@ func initRouter(gw *Gateway) *chi.Mux {
 	r.Get("/orders/status", gw.ordersStatus)
 	r.Get("/orders/health", gw.ordersHealth)
 
-	// Агрегация
+	// Агрегация (оба сервиса)
 	r.Get("/users/{userId}/details", gw.userDetails)
 
-	// Health / Status самого шлюза
+	// Health Check
 	r.Get("/health", gw.health)
 	r.Get("/status", func(w http.ResponseWriter, r *http.Request) {
 		writeJSON(w, http.StatusOK, map[string]string{
@@ -186,73 +186,6 @@ func forwardResponse(w http.ResponseWriter, resp *http.Response) {
 
 	w.WriteHeader(resp.StatusCode)
 	io.Copy(w, resp.Body)
-}
-
-// --- USERS handlers ---
-
-func (g *Gateway) getUser(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userId")
-	url := usersServiceURL + "/users/" + userID
-
-	resp, err := g.doRequest(g.usersCB, http.MethodGet, url, nil, r)
-	if err != nil {
-		g.handleCBError(w, err, "Users")
-		return
-	}
-	forwardResponse(w, resp)
-}
-
-func (g *Gateway) createUser(w http.ResponseWriter, r *http.Request) {
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
-		return
-	}
-
-	url := usersServiceURL + "/users"
-	resp, err := g.doRequest(g.usersCB, http.MethodPost, url, body, r)
-	if err != nil {
-		g.handleCBError(w, err, "Users")
-		return
-	}
-	forwardResponse(w, resp)
-}
-
-func (g *Gateway) listUsers(w http.ResponseWriter, r *http.Request) {
-	url := usersServiceURL + "/users"
-	resp, err := g.doRequest(g.usersCB, http.MethodGet, url, nil, r)
-	if err != nil {
-		g.handleCBError(w, err, "Users")
-		return
-	}
-	forwardResponse(w, resp)
-}
-
-func (g *Gateway) updateUser(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userId")
-	body, err := io.ReadAll(r.Body)
-	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
-		return
-	}
-	url := usersServiceURL + "/users/" + userID
-	resp, err := g.doRequest(g.usersCB, http.MethodPut, url, body, r)
-	if err != nil {
-		g.handleCBError(w, err, "Users")
-		return
-	}
-	forwardResponse(w, resp)
-}
-
-func (g *Gateway) deleteUser(w http.ResponseWriter, r *http.Request) {
-	userID := chi.URLParam(r, "userId")
-	url := usersServiceURL + "/users/" + userID
-	resp, err := g.doRequest(g.usersCB, http.MethodDelete, url, nil, r)
-	if err != nil {
-		g.handleCBError(w, err, "Users")
-		return
-	}
-	forwardResponse(w, resp)
 }
 
 // --- ORDERS handlers ---
