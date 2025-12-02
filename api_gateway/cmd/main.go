@@ -3,7 +3,6 @@ package main
 import (
 	"api_gateway/internal/handler"
 	"context"
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -42,10 +41,11 @@ func main() {
 	usersHandler := handler.NewUserHandler(httpClient, usersServiceURL, gw.usersCB)
 	ordersHandler := handler.NewOrdersHandler(httpClient, ordersServiceURL, gw.ordersCB)
 	aggHandler   := handler.NewAggregationHandler(httpClient, gw.usersCB, gw.ordersCB, usersServiceURL, ordersServiceURL)
+	healthHandler := handler.NewHealthHandler(gw.usersCB, gw.ordersCB)
 
 	srv := &http.Server{
 		Addr: fmt.Sprintf(":%v", port),
-		Handler: initRouter(gw, usersHandler, ordersHandler, aggHandler),
+		Handler: initRouter(gw, usersHandler, ordersHandler, aggHandler, healthHandler),
 	}
 
 	// Graceful shutdown
@@ -72,7 +72,7 @@ func main() {
 	}
 }
 
-func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.OrdersHandler, agg *handler.AggregationHandler) *chi.Mux {
+func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.OrdersHandler, agg *handler.AggregationHandler, health *handler.HealthHandler) *chi.Mux {
 	r := chi.NewRouter()
 
 	r.Use(middleware.RequestID)
@@ -87,14 +87,12 @@ func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.Orders
 		MaxAge:           300,
 	}))
 
-	// USERS
 	r.Get("/users/{userId}", users.GetUser)
 	r.Post("/users", users.CreateUser)
 	r.Get("/users", users.ListUsers)
 	r.Put("/users", users.UpdateUser)
 	r.Delete("/users/{userId}", users.DeleteUser)
 
-	// ORDERS
 	r.Get("/orders/{orderId}", orders.GetOrder)
 	r.Post("/orders", orders.CreateOrder)
 	r.Get("/orders", orders.ListOrders)
@@ -103,16 +101,10 @@ func initRouter(gw *Gateway, users *handler.UsersHandler, orders *handler.Orders
 	r.Get("/orders/status", orders.OrdersStatus)
 	r.Get("/orders/health", orders.OrdersHealth)
 
-	// Агрегация (оба сервиса)
 	r.Get("/users/{userId}/details", agg.UserDetails)
 
-	// Health Check
-	r.Get("/health", gw.health)
-	r.Get("/status", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{
-			"status": "API Gateway is running",
-		})
-	})
+	r.Get("/health", health.Health)
+	r.Get("/status", health.Status)
 
 	return r
 }
@@ -134,29 +126,4 @@ func newCircuitBreaker(name string) *gobreaker.CircuitBreaker {
 		},
 	}
 	return gobreaker.NewCircuitBreaker(settings)
-}
-
-// Общий helper для JSON-ответов
-func writeJSON(w http.ResponseWriter, status int, v any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(v)
-}
-
-// --- Health шлюза ---
-
-func (g *Gateway) health(w http.ResponseWriter, r *http.Request) {
-	writeJSON(w, http.StatusOK, map[string]any{
-		"status": "API Gateway is running",
-		"circuits": map[string]any{
-			"users": map[string]any{
-				"state": g.usersCB.State().String(),
-				"stats": g.usersCB.Counts(),
-			},
-			"orders": map[string]any{
-				"state": g.ordersCB.State().String(),
-				"stats": g.ordersCB.Counts(),
-			},
-		},
-	})
 }
