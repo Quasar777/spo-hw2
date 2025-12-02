@@ -19,31 +19,41 @@ func NewUserRepository() *UserRepository {
 		nextID:  4,
 	}
 
+	now := time.Now()
+
 	r.storage[1] = model.User{
-		ID: 1,
-		Name:      "Alice",
-		Email:     "alice@example.com",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:           1,
+		Name:         "Alice",
+		Email:        "alice@example.com",
+		PasswordHash: "",               // временно пусто
+		Roles:        []string{"user"}, // по умолчанию обычный пользователь
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	r.storage[2] = model.User{
-		ID: 2,
-		Name:      "John",
-		Email:     "john@example.com",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:           2,
+		Name:         "John",
+		Email:        "john@example.com",
+		PasswordHash: "",
+		Roles:        []string{"user"},
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
+
 	r.storage[3] = model.User{
-		ID: 3,
-		Name:      "Andrew",
-		Email:     "andrew@example.com",
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+		ID:           3,
+		Name:         "Andrew",
+		Email:        "andrew@example.com",
+		PasswordHash: "",
+		Roles:        []string{"admin"}, // допустим, ты админ :)
+		CreatedAt:    now,
+		UpdatedAt:    now,
 	}
 
 	return r
 }
+
 
 func (r *UserRepository) GetByID(id int) (*model.User, error) {
 	r.mu.RLock()
@@ -72,27 +82,31 @@ func (r *UserRepository) GetAll() ([]model.User, error) {
 	return res, nil
 }
 
-func (r *UserRepository) Create(user *model.CreateUserRequest) (int, error) {
+func (r *UserRepository) Create(req *model.CreateUserRequest) (int, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	for _, u := range r.storage {
-		if user.Email == u.Email {
+		if req.Email == u.Email {
 			return 0, model.ErrUniqueEmailConflict
 		}
 	}
 
 	newUser := &model.User{
-		ID: r.nextID,
-		Email: user.Email,
-		Name: user.Name,
-		CreatedAt: time.Now(),
+		ID:           r.nextID,
+		Email:        req.Email,
+		Name:         req.Name,
+		PasswordHash: req.PasswordHash,
+		Roles:        req.Roles,
+		CreatedAt:    time.Now(),
+		UpdatedAt:    time.Now(),
 	}
+
 	r.nextID++
-	
 	r.storage[newUser.ID] = *newUser
 	return newUser.ID, nil
 }
+
 
 func (r *UserRepository) Update(user *model.UpdateUserRequest) error {
 	r.mu.Lock()
@@ -126,4 +140,18 @@ func (r *UserRepository) Delete(id int) error {
 
 	delete(r.storage, id)
 	return nil
+}
+
+func (r *UserRepository) GetByEmail(email string) (*model.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, u := range r.storage {
+		if u.Email == email {
+			userCopy := u
+			return &userCopy, nil
+		}
+	}
+
+	return nil, model.ErrUserNotFound
 }

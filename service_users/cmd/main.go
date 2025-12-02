@@ -59,12 +59,10 @@ func main() {
 func initRouter(user *handler.UserController) *chi.Mux {
 	r := chi.NewRouter()
 
-	// Middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// Routes
 	r.Get("/users", user.GetMany)
 	r.Get("/users/{id}", user.GetUser)
 	r.Post("/users", user.CreateUser)
@@ -72,6 +70,9 @@ func initRouter(user *handler.UserController) *chi.Mux {
 	r.Delete("/users/{id}",user.DeleteUser)
 	r.Get("/users/health", user.Health)
 	r.Get("/users/status", user.Status)	
+
+	r.Post("/auth/register", user.Register)
+	r.Post("/auth/login", user.Login)
 	
 	return r
 }

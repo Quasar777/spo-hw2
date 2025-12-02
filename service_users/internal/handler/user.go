@@ -145,7 +145,6 @@ func (c *UserController) DeleteUser(w http.ResponseWriter, r *http.Request) {
 	c.writeJSON(w, http.StatusOK, response)
 }
 
-// Health Check 
 func (c *UserController) Health(w http.ResponseWriter, r *http.Request) {
 	response := map[string]any {
 		"status":   "OK",
@@ -156,13 +155,132 @@ func (c *UserController) Health(w http.ResponseWriter, r *http.Request) {
 	c.writeJSON(w, http.StatusOK, response)
 }
 
-// Service status
 func (c *UserController) Status(w http.ResponseWriter, r *http.Request) {
 	response := map[string]string {
 		"status": "Users service is running",
 	}
 
 	c.writeJSON(w, http.StatusOK, response)
+}
+
+func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
+	var req model.RegisterRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
+			Success: false,
+			Error: &model.APIError{
+				Code:    "bad_request",
+				Message: "invalid JSON",
+			},
+		})
+		return
+	}
+
+	id, err := c.service.Register(req)
+	if err != nil {
+		switch err {
+		case model.ErrMissingRequiredFields:
+			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "missing_fields",
+					Message: "email, name and password are required",
+				},
+			})
+		case model.ErrInvalidEmail:
+			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "invalid_email",
+					Message: "email is not valid",
+				},
+			})
+		case model.ErrInvalidPassword:
+			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "invalid_password",
+					Message: "password is too short",
+				},
+			})
+		case model.ErrUniqueEmailConflict:
+			c.writeJSON(w, http.StatusConflict, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "email_conflict",
+					Message: "user with this email already exists",
+				},
+			})
+		default:
+			c.writeJSON(w, http.StatusInternalServerError, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "internal_error",
+					Message: "internal server error",
+				},
+			})
+		}
+		return
+	}
+
+	c.writeJSON(w, http.StatusCreated, model.APIResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"id": id,
+		},
+	})
+}
+
+func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
+	var req model.LoginRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
+			Success: false,
+			Error: &model.APIError{
+				Code:    "bad_request",
+				Message: "invalid JSON",
+			},
+		})
+		return
+	}
+
+	token, err := c.service.Login(req)
+	if err != nil {
+		switch err {
+		case model.ErrMissingRequiredFields:
+			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "missing_fields",
+					Message: "email and password are required",
+				},
+			})
+		case model.ErrInvalidCredentials:
+			c.writeJSON(w, http.StatusUnauthorized, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "invalid_credentials",
+					Message: "invalid email or password",
+				},
+			})
+		default:
+			c.writeJSON(w, http.StatusInternalServerError, model.APIResponse{
+				Success: false,
+				Error: &model.APIError{
+					Code:    "internal_error",
+					Message: "internal server error",
+				},
+			})
+		}
+		return
+	}
+
+	c.writeJSON(w, http.StatusOK, model.APIResponse{
+		Success: true,
+		Data: map[string]interface{}{
+			"token": token,
+		},
+	})
 }
 
 // Helpers

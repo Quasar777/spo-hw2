@@ -8,4 +8,6 @@ type UserRepository interface {
 	Create(req *model.CreateUserRequest) (int, error)
 	Update(req *model.UpdateUserRequest) error
 	Delete(id int) error 
+
+	GetByEmail(email string) (*model.User, error)
 }
