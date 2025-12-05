@@ -283,6 +283,73 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+func (c *UserController) GetMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserIDFromContext(r.Context())
+	if !ok || userID == 0 {
+		c.writeJSON(w, http.StatusUnauthorized, map[string]string{
+			"error": "unauthorized",
+		})
+		return
+	}
+
+	user, err := c.service.GetCurrentUser(userID)
+	if err != nil {
+		switch err {
+		case model.ErrUserNotFound:
+			c.writeJSON(w, http.StatusNotFound, map[string]string{
+				"error": "user not found",
+			})
+		default:
+			c.writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error": "internal server error",
+			})
+		}
+		return
+	}
+
+	c.writeJSON(w, http.StatusOK, user)
+}
+
+func (c *UserController) UpdateMe(w http.ResponseWriter, r *http.Request) {
+	userID, ok := getUserIDFromContext(r.Context())
+	if !ok || userID == 0 {
+		c.writeJSON(w, http.StatusUnauthorized, map[string]string{
+			"error": "unauthorized",
+		})
+		return
+	}
+
+	var req model.UpdateProfileRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		c.writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "invalid JSON",
+		})
+		return
+	}
+
+	user, err := c.service.UpdateProfile(userID, req)
+	if err != nil {
+		switch err {
+		case model.ErrMissingRequiredFields:
+			c.writeJSON(w, http.StatusBadRequest, map[string]string{
+				"error": "name is required",
+			})
+		case model.ErrUserNotFound:
+			c.writeJSON(w, http.StatusNotFound, map[string]string{
+				"error": "user not found",
+			})
+		default:
+			c.writeJSON(w, http.StatusInternalServerError, map[string]string{
+				"error": "internal server error",
+			})
+		}
+		return
+	}
+
+	c.writeJSON(w, http.StatusOK, user)
+}
+
+
 // Helpers
 func (c *UserController) writeJSON(w http.ResponseWriter, status int, data interface{}) {
 	w.Header().Set("Content-Type", "application/json")

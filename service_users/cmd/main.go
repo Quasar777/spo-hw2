@@ -73,6 +73,9 @@ func initRouter(user *handler.UserController) *chi.Mux {
 
 	r.Post("/auth/register", user.Register)
 	r.Post("/auth/login", user.Login)
+
+	r.With(user.AuthMiddleware).Get("/users/me", user.GetMe)
+	r.With(user.AuthMiddleware).Put("/users/me", user.UpdateMe)
 	
 	return r
 }

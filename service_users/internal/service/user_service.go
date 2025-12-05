@@ -1,6 +1,8 @@
 package service
 
 import (
+	"errors"
+	"fmt"
 	"regexp"
 	"service_users/internal/model"
 	"strconv"
@@ -14,6 +16,19 @@ type UserService struct {
 	repository UserRepository
 	jwtSecret  []byte
 	tokenTTL   time.Duration
+}
+
+type userClaims struct {
+	UserID int      `json:"user_id"`
+	Email  string   `json:"email"`
+	Roles  []string `json:"roles"`
+	jwt.RegisteredClaims
+}
+
+type AuthInfo struct {
+	UserID int
+	Email  string
+	Roles  []string
 }
 
 func NewUserService(r UserRepository) *UserService {
@@ -92,13 +107,6 @@ func (s *UserService) Register(req model.RegisterRequest) (int, error) {
 	return s.repository.Create(&createReq)
 }
 
-type userClaims struct {
-	UserID int      `json:"user_id"`
-	Email  string   `json:"email"`
-	Roles  []string `json:"roles"`
-	jwt.RegisteredClaims
-}
-
 func (s *UserService) Login(req model.LoginRequest) (string, error) {
 	if req.Email == "" || req.Password == "" {
 		return "", model.ErrMissingRequiredFields
@@ -135,6 +143,55 @@ func (s *UserService) Login(req model.LoginRequest) (string, error) {
 	}
 
 	return signed, nil
+}
+
+func (s *UserService) ParseToken(tokenStr string) (*AuthInfo, error) {
+	token, err := jwt.ParseWithClaims(tokenStr, &userClaims{}, func(t *jwt.Token) (interface{}, error) {
+		if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", t.Header["alg"])
+		}
+		return s.jwtSecret, nil
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*userClaims)
+	if !ok || !token.Valid {
+		return nil, errors.New("invalid token")
+	}
+
+	return &AuthInfo{
+		UserID: claims.UserID,
+		Email:  claims.Email,
+		Roles:  claims.Roles,
+	}, nil
+}
+
+func (s *UserService) GetCurrentUser(userID int) (*model.User, error) {
+	return s.repository.GetByID(userID)
+}
+
+func (s *UserService) UpdateProfile(userID int, req model.UpdateProfileRequest) (*model.User, error) {
+	if req.Name == "" {
+		return nil, model.ErrMissingRequiredFields
+	}
+
+	_, err := s.repository.GetByID(userID)
+	if err != nil {
+		return nil, err
+	}
+
+	updateReq := model.UpdateUserRequest{
+		ID:   userID,
+		Name: req.Name,
+	}
+
+	if err := s.repository.Update(&updateReq); err != nil {
+		return nil, err
+	}
+
+	return s.repository.GetByID(userID)
 }
 
 // Helpers

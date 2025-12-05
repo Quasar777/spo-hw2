@@ -99,10 +99,13 @@ func (h *UsersHandler) doRequest(method, path string, body []byte, r *http.Reque
 			return nil, err
 		}
 
-		// Прокидываем важные заголовки
 		req.Header.Set("Content-Type", "application/json")
 		if rid := r.Header.Get("X-Request-ID"); rid != "" {
 			req.Header.Set("X-Request-ID", rid)
+		}
+
+		if auth := r.Header.Get("Authorization"); auth != "" {
+			req.Header.Set("Authorization", auth)
 		}
 
 		return h.client.Do(req)

@@ -124,10 +124,12 @@ func (r *UserRepository) Update(user *model.UpdateUserRequest) error {
 	}
 	
 	userDB.Name = user.Name
+	userDB.UpdatedAt = time.Now()
 	r.storage[user.ID] = userDB
 
 	return nil
 }
+
 
 func (r *UserRepository) Delete(id int) error {
 	r.mu.Lock()
