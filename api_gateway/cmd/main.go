@@ -82,6 +82,9 @@ func initRouter(users *handler.UsersHandler, orders *handler.OrdersHandler, agg 
 		MaxAge:           300,
 	}))
 
+	rl := handler.NewRateLimiter(5, 10, time.Minute)
+	r.Use(rl.Middleware)
+
 	r.Get("/users/{userId}", users.GetUser)
 	r.Post("/users", users.CreateUser)
 	r.Get("/users", users.ListUsers)
