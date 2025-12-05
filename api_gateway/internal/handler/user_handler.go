@@ -114,3 +114,42 @@ func (h *UsersHandler) doRequest(method, path string, body []byte, r *http.Reque
 
 	return result.(*http.Response), nil
 }
+
+func (h *UsersHandler) Register(w http.ResponseWriter, r *http.Request) {
+	// читаем тело запроса, чтобы передать его дальше
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "failed to read request body",
+		})
+		return
+	}
+	defer r.Body.Close()
+
+	resp, err := h.doRequest(http.MethodPost, "/auth/register", body, r)
+	if err != nil {
+		handleCBError(w, err, "Users")
+		return
+	}
+
+	forwardResponse(w, resp)
+}
+
+func (h *UsersHandler) Login(w http.ResponseWriter, r *http.Request) {
+	body, err := io.ReadAll(r.Body)
+	if err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{
+			"error": "failed to read request body",
+		})
+		return
+	}
+	defer r.Body.Close()
+
+	resp, err := h.doRequest(http.MethodPost, "/auth/login", body, r)
+	if err != nil {
+		handleCBError(w, err, "Users")
+		return
+	}
+
+	forwardResponse(w, resp)
+}

@@ -21,6 +21,8 @@ const (
 	ordersServiceURL = "http://service_orders:8000"
 	port     = "8000"
 	shutdownTimeout = 5 * time.Second
+
+	jwtSecret = "super-secret-key"
 )
 
 var httpClient = &http.Client{
@@ -86,9 +88,15 @@ func initRouter(users *handler.UsersHandler, orders *handler.OrdersHandler, agg 
 	r.Put("/users", users.UpdateUser)
 	r.Delete("/users/{userId}", users.DeleteUser)
 
+	r.Post("/auth/register", users.Register)
+	r.Post("/auth/login", users.Login)
+
+	// Protected endpoint 
+	r.With(handler.JWTAuthMiddleware([]byte(jwtSecret))).Get("/orders", orders.ListOrders)
+
 	r.Get("/orders/{orderId}", orders.GetOrder)
 	r.Post("/orders", orders.CreateOrder)
-	r.Get("/orders", orders.ListOrders)
+	// r.Get("/orders", orders.ListOrders)
 	r.Put("/orders", orders.UpdateOrder)
 	r.Delete("/orders/{orderId}", orders.DeleteOrder)
 	r.Get("/orders/status", orders.OrdersStatus)
