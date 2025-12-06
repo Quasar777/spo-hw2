@@ -63,7 +63,6 @@ func (r *InMemoryOrderRepository) GetByID(id int) (*model.Order, error) {
 		return nil, model.ErrOrderNotFound
 	}
 
-	// Здесь возвращается копия, чтобы снаружи не мутировали map
 	o := order
 	return &o, nil
 }

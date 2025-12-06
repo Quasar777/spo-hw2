@@ -9,6 +9,7 @@ import (
 	"service_orders/internal/handler"
 	"service_orders/internal/repository"
 	"service_orders/internal/service"
+	"service_orders/internal/client"
 	"syscall"
 	"time"
 
@@ -19,12 +20,14 @@ import (
 const (
 	port            = "8000"
 	shutdownTimeout = 5 * time.Second
+	usersServiceUrl = "http://service_users:8000"
 )
 
 func main() {
 	// DI
+	usersClient := client.NewUsersClient(usersServiceUrl)
 	orderRepo := repository.NewInMemoryOrderRepository()
-	orderService := service.NewOrderService(orderRepo)
+	orderService := service.NewOrderService(orderRepo, usersClient)
 	orderController := handler.NewOrderController(*orderService)
 
 	r := initRouter(orderController)

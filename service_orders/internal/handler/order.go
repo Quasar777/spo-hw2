@@ -84,13 +84,15 @@ func (c *OrderController) CreateOrder(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	id, err := c.service.CreateOrder(req)
+	id, err := c.service.CreateOrder(r.Context(), req)
 	if err != nil {
 		switch err {
 		case model.ErrMissingRequiredFields:
 			http.Error(w, `{"error": "Missing required fields"}`, http.StatusBadRequest)
 		case model.ErrInvalidPrice:
 			http.Error(w, `{"error": "Invalid price"}`, http.StatusBadRequest)
+		case model.ErrUserNotFound:
+			http.Error(w, `{"error": "User not found"}`, http.StatusNotFound)
 		default:
 			http.Error(w, `{"error": "Server error"}`, http.StatusInternalServerError)
 		}

@@ -1,15 +1,18 @@
 package service
 
 import (
+	"context"
+	"fmt"
 	"service_orders/internal/model"
 )
 
 type OrderService struct {
 	repo OrderRepository
+	userChecker UserChecker
 }
 
-func NewOrderService(r OrderRepository) *OrderService {
-	return &OrderService{repo: r}
+func NewOrderService(r OrderRepository, uc UserChecker) *OrderService {
+	return &OrderService{repo: r, userChecker: uc}
 }
 
 func (s *OrderService) GetOrder(id int) (*model.Order, error) {
@@ -36,12 +39,20 @@ func (s *OrderService) ListOrders(userID *int) ([]model.Order, error) {
 	return filtered, nil
 }
 
-func (s *OrderService) CreateOrder(req model.CreateOrderRequest) (int, error) {
+func (s *OrderService) CreateOrder(ctx context.Context, req model.CreateOrderRequest) (int, error) {
 	if req.Name == "" || req.Status == "" || req.UserId == 0 {
 		return 0, model.ErrMissingRequiredFields
 	}
 	if req.Price < 0 {
 		return 0, model.ErrInvalidPrice
+	}
+
+	exists, err := s.userChecker.UserExists(ctx, req.UserId)
+	if err != nil {
+		return 0, fmt.Errorf("user check failed: %w", err)
+	}
+	if !exists {
+		return 0, model.ErrUserNotFound
 	}
 
 	return s.repo.Create(&req)
