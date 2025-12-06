@@ -21,7 +21,6 @@ func NewHealthHandler(
 	}
 }
 
-// GET /health
 func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status": "API Gateway is running",
@@ -38,7 +37,6 @@ func (h *HealthHandler) Health(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /status
 func (h *HealthHandler) Status(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{
 		"status": "API Gateway is running",

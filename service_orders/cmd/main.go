@@ -61,12 +61,10 @@ func main() {
 func initRouter(order *handler.OrderController) *chi.Mux {
 	r := chi.NewRouter()
 
-	// middleware
 	r.Use(middleware.RequestID)
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	// routes
 	r.Get("/orders/status", order.Status)
 	r.Get("/orders/health", order.Health)
 	r.Get("/orders/{id}", order.GetOrder)

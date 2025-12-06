@@ -38,7 +38,7 @@ func (h *UsersHandler) GetUser(w http.ResponseWriter, r *http.Request) {
 func (h *UsersHandler) CreateUser(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		http.Error(w, `{"error": "invalid body"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -62,7 +62,7 @@ func (h *UsersHandler) ListUsers(w http.ResponseWriter, r *http.Request) {
 func (h *UsersHandler) UpdateUser(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		http.Error(w, `{"error": "invalid body"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -119,7 +119,6 @@ func (h *UsersHandler) doRequest(method, path string, body []byte, r *http.Reque
 }
 
 func (h *UsersHandler) Register(w http.ResponseWriter, r *http.Request) {
-	// читаем тело запроса, чтобы передать его дальше
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
 		writeJSON(w, http.StatusBadRequest, map[string]string{

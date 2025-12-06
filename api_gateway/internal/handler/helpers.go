@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -32,13 +33,10 @@ func forwardResponse(w http.ResponseWriter, resp *http.Response) {
 // общий helper для ошибок circuit breaker’а
 func handleCBError(w http.ResponseWriter, err error, serviceName string) {
 	if errors.Is(err, gobreaker.ErrOpenState) || errors.Is(err, gobreaker.ErrTooManyRequests) {
-		writeJSON(w, http.StatusServiceUnavailable, map[string]string{
-			"error": serviceName + " service temporarily unavailable",
-		})
+		msg := fmt.Sprintf(`{"error": "%s service temporarily unavailable"}`, serviceName)
+		http.Error(w, msg, http.StatusServiceUnavailable)
 		return
 	}
 
-	writeJSON(w, http.StatusInternalServerError, map[string]string{
-		"error": "Internal server error",
-	})
+	http.Error(w, `{"error": "internal server error"}`, http.StatusInternalServerError)
 }

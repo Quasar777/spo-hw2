@@ -19,14 +19,12 @@ func NewOrderController(s service.OrderService) *OrderController {
 	return &OrderController{service: s}
 }
 
-// GET /orders/status
 func (c *OrderController) Status(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status": "Orders service is running",
 	})
 }
 
-// GET /orders/health
 func (c *OrderController) Health(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"status":    "OK",
@@ -35,7 +33,6 @@ func (c *OrderController) Health(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// GET /orders/{id}
 func (c *OrderController) GetOrder(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)
@@ -58,7 +55,6 @@ func (c *OrderController) GetOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, order)
 }
 
-// GET /orders?userId=...
 func (c *OrderController) ListOrders(w http.ResponseWriter, r *http.Request) {
 	userIdParam := r.URL.Query().Get("userId")
 
@@ -81,7 +77,6 @@ func (c *OrderController) ListOrders(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, orders)
 }
 
-// POST /orders
 func (c *OrderController) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	var req model.CreateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -110,7 +105,6 @@ func (c *OrderController) CreateOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusCreated, response)
 }
 
-// PUT /orders/{id}
 func (c *OrderController) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	var req model.UpdateOrderRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -144,7 +138,6 @@ func (c *OrderController) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, response)
 }
 
-// DELETE /orders/{id}
 func (c *OrderController) DeleteOrder(w http.ResponseWriter, r *http.Request) {
 	idStr := chi.URLParam(r, "id")
 	id, err := strconv.Atoi(idStr)

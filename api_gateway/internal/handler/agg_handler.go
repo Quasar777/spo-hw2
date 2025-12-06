@@ -12,7 +12,6 @@ import (
 	"github.com/sony/gobreaker"
 )
 
-
 type AggregationHandler struct {
 	client        *http.Client
 	usersCB       *gobreaker.CircuitBreaker
@@ -101,13 +100,13 @@ func (h *AggregationHandler) doOrdersRequest(method, path string, body []byte, r
 func (h *AggregationHandler) UserDetails(w http.ResponseWriter, r *http.Request) {
 	userIDStr := chi.URLParam(r, "userId")
 	if userIDStr == "" {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "userId is required"})
+		http.Error(w, `{"error": "userId is required"}`, http.StatusBadRequest)
 		return
 	}
 
 	userID, err := strconv.Atoi(userIDStr)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid userId"})
+		http.Error(w, `{"error": "invalid userId"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -176,13 +175,13 @@ func (h *AggregationHandler) UserDetails(w http.ResponseWriter, r *http.Request)
 
 	var user model.User
 	if err := json.NewDecoder(userRes.resp.Body).Decode(&user); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to parse user"})
+		http.Error(w, `{"error": "failed to parse user"}`, http.StatusInternalServerError)
 		return
 	}
 
 	var orders []model.Order
 	if err := json.NewDecoder(ordersRes.resp.Body).Decode(&orders); err != nil {
-		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "failed to parse orders"})
+		http.Error(w, `{"error": "failed to parse orders"}`, http.StatusInternalServerError)
 		return
 	}
 

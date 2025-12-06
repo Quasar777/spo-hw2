@@ -10,23 +10,17 @@ type contextKey string
 
 const userIDContextKey contextKey = "userID"
 
-// AuthMiddleware — проверяет Authorization: Bearer <token>,
-// если токен валиден — кладёт userID в контекст.
 func (c *UserController) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
-			c.writeJSON(w, http.StatusUnauthorized, map[string]string{
-				"error": "missing Authorization header",
-			})
+			http.Error(w, `{"error": "missing Authorization header"}`, http.StatusUnauthorized)
 			return
 		}
 
 		parts := strings.SplitN(authHeader, " ", 2)
 		if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") {
-			c.writeJSON(w, http.StatusUnauthorized, map[string]string{
-				"error": "invalid Authorization header format",
-			})
+			http.Error(w, `{"error": "invalid Authorization header format"}`, http.StatusUnauthorized)
 			return
 		}
 
@@ -34,13 +28,10 @@ func (c *UserController) AuthMiddleware(next http.Handler) http.Handler {
 
 		authInfo, err := c.service.ParseToken(tokenStr)
 		if err != nil {
-			c.writeJSON(w, http.StatusUnauthorized, map[string]string{
-				"error": "invalid or expired token",
-			})
+			http.Error(w, `{"error": "invalid or expired token"}`, http.StatusUnauthorized)
 			return
 		}
 
-		// Кладём userID в контекст
 		ctx := context.WithValue(r.Context(), userIDContextKey, authInfo.UserID)
 		r = r.WithContext(ctx)
 
@@ -48,7 +39,7 @@ func (c *UserController) AuthMiddleware(next http.Handler) http.Handler {
 	})
 }
 
-// helper для хендлеров
+// helpers
 func getUserIDFromContext(ctx context.Context) (int, bool) {
 	val := ctx.Value(userIDContextKey)
 	if val == nil {

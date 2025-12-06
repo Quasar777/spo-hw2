@@ -166,13 +166,7 @@ func (c *UserController) Status(w http.ResponseWriter, r *http.Request) {
 func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 	var req model.RegisterRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
-			Success: false,
-			Error: &model.APIError{
-				Code:    "bad_request",
-				Message: "invalid JSON",
-			},
-		})
+		http.Error(w, `{"error": "invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -180,45 +174,15 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case model.ErrMissingRequiredFields:
-			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "missing_fields",
-					Message: "email, name and password are required",
-				},
-			})
+			http.Error(w, `{"error": "email, name and password are required"}`, http.StatusBadRequest)
 		case model.ErrInvalidEmail:
-			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "invalid_email",
-					Message: "email is not valid",
-				},
-			})
+			http.Error(w, `{"error": "email is not valid"}`, http.StatusBadRequest)
 		case model.ErrInvalidPassword:
-			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "invalid_password",
-					Message: "password is too short",
-				},
-			})
+			http.Error(w, `{"error": "password is too short"}`, http.StatusBadRequest)
 		case model.ErrUniqueEmailConflict:
-			c.writeJSON(w, http.StatusConflict, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "email_conflict",
-					Message: "user with this email already exists",
-				},
-			})
+			http.Error(w, `{"error": "user with this email already exists"}`, http.StatusConflict)
 		default:
-			c.writeJSON(w, http.StatusInternalServerError, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "internal_error",
-					Message: "internal server error",
-				},
-			})
+			http.Error(w, `{"error": "internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -231,16 +195,11 @@ func (c *UserController) Register(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+
 func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	var req model.LoginRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
-			Success: false,
-			Error: &model.APIError{
-				Code:    "bad_request",
-				Message: "invalid JSON",
-			},
-		})
+		http.Error(w, `{"error": "invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -248,29 +207,13 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case model.ErrMissingRequiredFields:
-			c.writeJSON(w, http.StatusBadRequest, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "missing_fields",
-					Message: "email and password are required",
-				},
-			})
+			http.Error(w, `{"error": "email and password are required"}`, http.StatusBadRequest)
+
 		case model.ErrInvalidCredentials:
-			c.writeJSON(w, http.StatusUnauthorized, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "invalid_credentials",
-					Message: "invalid email or password",
-				},
-			})
+			http.Error(w, `{"error": "invalid email or password"}`, http.StatusUnauthorized)
+
 		default:
-			c.writeJSON(w, http.StatusInternalServerError, model.APIResponse{
-				Success: false,
-				Error: &model.APIError{
-					Code:    "internal_error",
-					Message: "internal server error",
-				},
-			})
+			http.Error(w, `{"error": "internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -283,12 +226,11 @@ func (c *UserController) Login(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
+
 func (c *UserController) GetMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserIDFromContext(r.Context())
 	if !ok || userID == 0 {
-		c.writeJSON(w, http.StatusUnauthorized, map[string]string{
-			"error": "unauthorized",
-		})
+		http.Error(w, `{"error": "unauthorized"}`, http.StatusUnauthorized)
 		return
 	}
 
@@ -296,13 +238,9 @@ func (c *UserController) GetMe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case model.ErrUserNotFound:
-			c.writeJSON(w, http.StatusNotFound, map[string]string{
-				"error": "user not found",
-			})
+			http.Error(w, `{"error": "user not found"}`, http.StatusNotFound)
 		default:
-			c.writeJSON(w, http.StatusInternalServerError, map[string]string{
-				"error": "internal server error",
-			})
+			http.Error(w, `{"error": "internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
@@ -313,17 +251,13 @@ func (c *UserController) GetMe(w http.ResponseWriter, r *http.Request) {
 func (c *UserController) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := getUserIDFromContext(r.Context())
 	if !ok || userID == 0 {
-		c.writeJSON(w, http.StatusUnauthorized, map[string]string{
-			"error": "unauthorized",
-		})
+		http.Error(w, `{"error": "unauthorized"}`, http.StatusUnauthorized)
 		return
 	}
 
 	var req model.UpdateProfileRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		c.writeJSON(w, http.StatusBadRequest, map[string]string{
-			"error": "invalid JSON",
-		})
+		http.Error(w, `{"error": "invalid JSON"}`, http.StatusBadRequest)
 		return
 	}
 
@@ -331,24 +265,17 @@ func (c *UserController) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case model.ErrMissingRequiredFields:
-			c.writeJSON(w, http.StatusBadRequest, map[string]string{
-				"error": "name is required",
-			})
+			http.Error(w, `{"error": "name is required"}`, http.StatusBadRequest)
 		case model.ErrUserNotFound:
-			c.writeJSON(w, http.StatusNotFound, map[string]string{
-				"error": "user not found",
-			})
+			http.Error(w, `{"error": "user not found"}`, http.StatusNotFound)
 		default:
-			c.writeJSON(w, http.StatusInternalServerError, map[string]string{
-				"error": "internal server error",
-			})
+			http.Error(w, `{"error": "internal server error"}`, http.StatusInternalServerError)
 		}
 		return
 	}
 
 	c.writeJSON(w, http.StatusOK, user)
 }
-
 
 // Helpers
 func (c *UserController) writeJSON(w http.ResponseWriter, status int, data interface{}) {

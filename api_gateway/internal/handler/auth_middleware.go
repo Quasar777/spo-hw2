@@ -15,8 +15,6 @@ const (
 	ContextKeyUserID contextKey = "userID"
 )
 
-// JWTAuthMiddleware проверяет JWT в заголовке Authorization: Bearer <token>.
-// Если токен валиден — пропускаем дальше, иначе шлём 401.
 func JWTAuthMiddleware(secret []byte) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

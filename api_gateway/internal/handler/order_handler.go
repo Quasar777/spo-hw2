@@ -95,7 +95,7 @@ func (h *OrdersHandler) ListOrders(w http.ResponseWriter, r *http.Request) {
 func (h *OrdersHandler) UpdateOrder(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		http.Error(w, `{"error": "invalid body"}`, http.StatusBadRequest)
 		return
 	}
 
